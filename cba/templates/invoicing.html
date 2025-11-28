@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoicing - Clamping Business</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+            body {
+                background: white;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Invoice Report - Paid Records</h1>
+        
+        <div class="invoicing-header no-print">
+            <a href="/" class="btn">Back to Dashboard</a>
+            <button class="btn btn-print" onclick="window.print()">Print Invoice</button>
+        </div>
+
+        {% if paid_clamps %}
+            <div class="invoice-section">
+                <h2>Paid Clamp Records</h2>
+                <p class="invoice-info"><strong>Total Records:</strong> {{ paid_clamps|length }}</p>
+                <p class="invoice-info"><strong>Date Generated:</strong> {{ now.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Location</th>
+                            <th>Date</th>
+                            <th>Time In</th>
+                            <th>Time Released</th>
+                            <th>Offense</th>
+                            <th>Amount (USD)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for clamp in paid_clamps %}
+                        <tr>
+                            <td>{{ clamp.id }}</td>
+                            <td>{{ clamp.location }}</td>
+                            <td>{{ clamp.clamp_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ clamp.time_in.strftime('%H:%M') }}</td>
+                            <td>{{ clamp.time_released.strftime('%H:%M') if clamp.time_released else 'N/A' }}</td>
+                            <td>{{ clamp.offense }}</td>
+                            <td>{{ '%.2f'|format(clamp.amount_paid or 0) }}</td>
+                            <td><span class="status-paid">Paid</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div class="invoice-footer">
+                    <p class="invoice-info"><strong>Total Amount:</strong> {{ '%.2f'|format(total_amount) }} USD</p>
+                </div>
+
+                <div class="invoice-footer">
+                    <p>This is an official record of all paid clamping records. Please keep for your records.</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="no-data">
+                <p>No paid records found.</p>
+                <a href="/" class="btn">Back to Dashboard</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Pass current date/time to the template
+    </script>
+</body>
+</html>

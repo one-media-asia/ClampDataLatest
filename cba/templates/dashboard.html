@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clamping Business Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Clamping Business Dashboard</h1>
+        <p>Here you can manage your clamping business operations efficiently.</p>
+        
+        <div class="stats">
+            <h2>Business Overview</h2>
+            <div class="stat-item">
+                <h3>Total Clamps</h3>
+                <p>{{ total_clamps }}</p>
+            </div>
+            <div class="stat-item">
+                <h3>Total Customers</h3>
+                <p>{{ total_customers }}</p>
+            </div>
+            <div class="stat-item">
+                <h3>Pending Orders</h3>
+                <p>{{ pending_orders }}</p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <h2>Actions</h2>
+            <a href="{{ url_for('clamp_form') }}" class="btn">Add New Clamp Entry</a>
+            <a href="{{ url_for('clamp_list') }}" class="btn">View Clamp Entries</a>
+        </div>
+    </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clamping Business Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+</html

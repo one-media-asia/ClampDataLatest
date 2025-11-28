@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clamping Business Administration</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#c3e6cb">
+</head>
+<body>
+    <div class="container">
+        <header class="site-header centered">
+            <!-- Prominent logo as primary header. Child templates can override to hide -->
+            {% block header_logo %}
+            <div class="logo-wrap">
+                <!-- Use PNG directly to avoid SVG serving/display issues -->
+                <img src="{{ url_for('static', filename='images/icon-192.png') }}" class="site-logo" alt="Clampers logo">
+            </div>
+            {% endblock %}
+            <!-- App name and tagline placed underneath the logo, smaller -->
+            <div class="site-title small">
+                <div class="site-name">Clamping Business Administration</div>
+                <p class="tagline">Secure Clamping Management</p>
+            </div>
+            <!-- User info + actions -->
+            <div class="user-actions">
+                {% if session.username %}
+                    <span class="who">Signed in as <strong>{{ session.username }}</strong></span>
+                    <a href="{{ url_for('change_password') }}" class="btn btn-small">Change Password</a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-small">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-small">Login</a>
+                {% endif %}
+            </div>
+            <!-- Navigation removed as requested -->
+        </header>
+        <main>
+            {% block content %}
+            {% endblock %}
+        </main>
+        <footer>
+            <p>&copy; {{ current_year }} Clamping Business. All rights reserved.</p>
+        </footer>
+    </div>
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+</body>
+</html>

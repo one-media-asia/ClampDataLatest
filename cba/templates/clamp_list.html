@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Clamp Entries</h2>
+    <a href="{{ url_for('clamp_form') }}" class="btn">Add New Entry</a>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Location</th>
+                <th>Registration</th>
+                <th>Date</th>
+                <th>In</th>
+                <th>Time Called</th>
+                <th>Time Released</th>
+                <th>Car Type</th>
+                <th>Color</th>
+                <th>Clamp Ref</th>
+                <th>Photo</th>
+                <th>Offense</th>
+                <th>Paid</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for clamp in clamps %}
+            <tr>
+                <td>{{ clamp.location }}</td>
+                <td>{{ clamp.registration or '' }}</td>
+                <td>{{ clamp.clamp_date.strftime('%Y-%m-%d') }}</td>
+                <td>{{ clamp.time_in.strftime('%H:%M') if clamp.time_in else '' }}</td>
+                <td>{{ clamp.time_called.strftime('%H:%M') if clamp.time_called else '' }}</td>
+                <td>{{ clamp.time_released.strftime('%H:%M') if clamp.time_released else 'N/A' }}</td>
+                <td>{{ clamp.car_type or '' }}</td>
+                <td>{{ clamp.color or '' }}</td>
+                <td>{{ clamp.clamp_ref or '' }}</td>
+                <td>
+                    {% if clamp.image_filename %}
+                        <img src="{{ url_for('static', filename=clamp.image_filename) }}" alt="photo" style="max-width:80px;">
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ clamp.offense }}</td>
+                <td>{{ '%.2f'|format(clamp.amount_paid or 0) }}</td>
+                <td><span class="status-{{ clamp.payment_status.lower().replace(' ', '-') }}">{{ clamp.payment_status }}</span></td>
+                <td>
+                    <a href="{{ url_for('edit_clamp', id=clamp.id) }}" class="btn btn-edit">Edit</a>
+                    <a href="{{ url_for('delete_clamp', id=clamp.id) }}" class="btn btn-delete" onclick="return confirm('Delete this entry?')">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

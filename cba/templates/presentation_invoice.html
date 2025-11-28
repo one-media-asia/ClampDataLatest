@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invoice #{{ clamp.id }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body{background:#fff;color:#333;font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px}
+    .invoice{max-width:900px;margin:0 auto}
+    .header{text-align:center;margin-bottom:20px}
+    .invoice-table{width:100%;border-collapse:collapse}
+    .invoice-table td{padding:10px;border-bottom:1px solid #eee}
+    .big{font-size:1.1rem}
+  </style>
+</head>
+<body>
+  <div class="invoice">
+    <div class="header">
+      <h1>PAID INVOICE</h1>
+      <p>Invoice #{{ clamp.id }} — Generated: {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+    <table class="invoice-table">
+      <tr><td><strong>Location</strong></td><td class="big">{{ clamp.location }}</td></tr>
+      <tr><td><strong>Registration</strong></td><td class="big">{{ clamp.registration or 'N/A' }}</td></tr>
+      <tr><td><strong>Date</strong></td><td>{{ clamp.clamp_date.strftime('%Y-%m-%d') }}</td></tr>
+      <tr><td><strong>Time In</strong></td><td>{{ clamp.time_in.strftime('%H:%M') if clamp.time_in else 'N/A' }}</td></tr>
+      <tr><td><strong>Time Called</strong></td><td>{{ clamp.time_called.strftime('%H:%M') if clamp.time_called else 'N/A' }}</td></tr>
+      <tr><td><strong>Time Released</strong></td><td>{{ clamp.time_released.strftime('%H:%M') if clamp.time_released else 'N/A' }}</td></tr>
+      <tr><td><strong>Car Type</strong></td><td>{{ clamp.car_type or 'N/A' }}</td></tr>
+      <tr><td><strong>Color</strong></td><td>{{ clamp.color or 'N/A' }}</td></tr>
+      <tr><td><strong>Clamp Reference</strong></td><td>{{ clamp.clamp_ref or 'N/A' }}</td></tr>
+      <tr><td><strong>Offense</strong></td><td>{{ clamp.offense }}</td></tr>
+      <tr><td><strong>Amount Paid</strong></td><td>{{ '%.2f'|format(clamp.amount_paid or 0) }} USD</td></tr>
+      <tr><td><strong>Status</strong></td><td>{{ clamp.payment_status }}</td></tr>
+      {% if clamp.image_filename %}
+      <tr><td><strong>Photo</strong></td><td><img src="{{ url_for('static', filename=clamp.image_filename) }}" alt="clamp photo" style="max-width:300px"></td></tr>
+      {% endif %}
+    </table>
+    <div style="margin-top:30px;text-align:center;color:#666;font-size:0.9rem">Present display mode</div>
+  </div>
+</body>
+</html>

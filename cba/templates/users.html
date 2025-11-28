@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="max-width:900px;margin:24px auto;">
+  <h2>Users</h2>
+  <table class="data-table">
+    <thead><tr><th>ID</th><th>Username</th><th>Admin</th><th>Created</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.id }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ 'Yes' if u.is_admin else 'No' }}</td>
+        <td>{{ u.created_at.strftime('%Y-%m-%d') }}</td>
+        <td>{% if u.username != 'admin' %}<a href="{{ url_for('delete_user', id=u.id) }}" class="btn btn-delete">Delete</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3 style="margin-top:24px">Add User</h3>
+  <form action="{{ url_for('add_user') }}" method="post" style="display:grid;grid-template-columns:1fr 1fr 120px;gap:8px;align-items:center;">
+    <input name="username" placeholder="username" required style="padding:8px;" />
+    <input name="password" type="password" placeholder="password" required style="padding:8px;" />
+    <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="is_admin" /> Admin</label>
+    <div style="grid-column:1/4;text-align:right;"><button class="btn btn-primary" type="submit">Add User</button></div>
+  </form>
+</div>
+{% endblock %}

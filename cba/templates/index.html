@@ -1,0 +1,937 @@
+{% extends 'base.html' %}
+{% block header_logo %}{% endblock %}
+{% block content %}
+    <div class="page-container compact">
+        <div class="page-header">
+            <h2 class="page-title">Clamping Business Administration</h2>
+        </div>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Tabs Navigation -->
+        <div class="tabs">
+                <button class="tab-button active" onclick="openTab(event, 'data-tab')">View Data</button>
+            <button class="tab-button" onclick="openTab(event, 'add-tab')">Add New Entry</button>
+            <button class="tab-button" onclick="openTab(event, 'invoicing-tab')">Invoicing</button>
+            <button class="tab-button" onclick="openTab(event, 'appeals-tab')">Appeals</button>
+            {% if is_admin %}
+            <button class="tab-button" onclick="openTab(event, 'admin-tab')">Admin</button>
+            {% endif %}
+            <a class="btn btn-secondary" href="{{ url_for('appeals') }}" target="_blank" style="margin-left:8px">Open Appeals Page</a>
+        </div>
+
+        <!-- View Data Tab -->
+        <div id="data-tab" class="tab-content active">
+            <h2>Clamp Data Records</h2>
+            <style>
+                /* Make the data table wrap into two visual rows to fit the page width */
+                .data-table thead tr, .data-table tbody tr {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                }
+                .data-table th, .data-table td {
+                    box-sizing: border-box;
+                    width: calc(100% / 7);
+                    padding: 8px 10px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .field-title { color: #107a10; font-weight:700; font-size:0.85rem; margin-bottom:4px; background: rgba(16,122,16,0.08); padding:2px 6px; border-radius:4px; display:inline-block; }
+                .field-value { font-size:0.95rem; }
+                .data-row td { vertical-align: top; padding:6px 10px; }
+                .data-table td img.thumb-img { max-width:100%; height:auto; }
+                @media (max-width: 900px) {
+                    .data-table th, .data-table td { width: 50%; }
+                }
+            </style>
+            {% if clamps %}
+                <table class="data-table">
+                        <!-- global header removed per request; titles rendered per-cell above each value -->
+                    <tbody>
+                        {% for clamp in clamps %}
+                        <tr id="row-{{ clamp.id }}" class="data-row">
+                            <td class="editable" data-field="location" data-id="{{ clamp.id }}">
+                                <div class="field-title">Location</div>
+                                <div class="field-value">{{ clamp.location }}</div>
+                            </td>
+                            <td class="editable" data-field="registration" data-id="{{ clamp.id }}">
+                                <div class="field-title">Reg</div>
+                                <div class="field-value">{{ clamp.registration or '' }}</div>
+                            </td>
+                            <td class="editable" data-field="clamp_date" data-id="{{ clamp.id }}">
+                                <div class="field-title">Date</div>
+                                <div class="field-value">{{ clamp.clamp_date.strftime('%Y-%m-%d') }}</div>
+                            </td>
+                            <td class="editable" data-field="time_in" data-id="{{ clamp.id }}">
+                                <div class="field-title">In</div>
+                                <div class="field-value">{{ clamp.time_in.strftime('%H:%M') if clamp.time_in else '' }}</div>
+                            </td>
+                            <td class="editable" data-field="time_called" data-id="{{ clamp.id }}">
+                                <div class="field-title">Called</div>
+                                <div class="field-value">{{ clamp.time_called.strftime('%H:%M') if clamp.time_called else '' }}</div>
+                            </td>
+                            <td class="editable" data-field="time_released" data-id="{{ clamp.id }}">
+                                <div class="field-title">Released</div>
+                                <div class="field-value">{{ clamp.time_released.strftime('%H:%M') if clamp.time_released else 'N/A' }}</div>
+                            </td>
+                            <td class="editable" data-field="car_type" data-id="{{ clamp.id }}">
+                                <div class="field-title">Type</div>
+                                <div class="field-value">{{ clamp.car_type or '' }}</div>
+                            </td>
+                            <td class="editable" data-field="color" data-id="{{ clamp.id }}">
+                                <div class="field-title">Color</div>
+                                <div class="field-value">{{ clamp.color or '' }}</div>
+                            </td>
+                            <td class="editable" data-field="clamp_ref" data-id="{{ clamp.id }}">
+                                <div class="field-title">Ref</div>
+                                <div class="field-value">{{ clamp.clamp_ref or '' }}</div>
+                            </td>
+                            <td>
+                                <div class="field-title">Photo</div>
+                                <div class="field-value">
+                                {% if clamp.image_filename %}
+                                    <img class="thumb-img" src="{{ url_for('static', filename=clamp.image_filename) }}" alt="photo">
+                                {% else %}
+                                    -
+                                {% endif %}
+                                </div>
+                            </td>
+                            <td class="editable" data-field="offense" data-id="{{ clamp.id }}">
+                                <div class="field-title">Offense</div>
+                                <div class="field-value">{{ clamp.offense }}</div>
+                            </td>
+                            <td class="editable" data-field="amount_paid" data-id="{{ clamp.id }}">
+                                <div class="field-title">Paid</div>
+                                <div class="field-value">{{ '%.2f'|format(clamp.amount_paid or 0) }}</div>
+                            </td>
+                            <td class="editable status-cell" data-field="payment_status" data-id="{{ clamp.id }}">
+                                <div class="field-title">Status</div>
+                                <div class="field-value"><span class="status-{{ clamp.payment_status.lower().replace(' ', '-') }}">{{ clamp.payment_status }}</span></div>
+                            </td>
+                            <td>
+                                <div class="field-title">Actions</div>
+                                <div class="field-value">
+                                {% if is_admin %}
+                                    <button class="btn btn-edit" onclick="editPaidRow({{ clamp.id }})">Edit</button>
+                                    <button class="btn btn-delete" onclick="confirmDeleteClamp({{ clamp.id }})">Delete</button>
+                                {% else %}
+                                    <button class="btn btn-view" onclick="editPaidRow({{ clamp.id }})">View</button>
+                                {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="no-data">No clamp data records yet. <a href="#add-tab" onclick="openTab(event, 'add-tab')">Add one now</a></p>
+            {% endif %}
+        </div>
+
+        <!-- Add Data Tab -->
+        <div id="add-tab" class="tab-content">
+            <h2>Add New Clamp Entry</h2>
+            <form method="POST" action="{{ url_for('add_clamp') }}" class="form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" name="location" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registration">Registration:</label>
+                    <input type="text" id="registration" name="registration">
+                </div>
+
+                <div class="form-group">
+                    <label for="clamp_date">Date:</label>
+                    <input type="date" id="clamp_date" name="clamp_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="time_in">Time In:</label>
+                    <input type="time" id="time_in" name="time_in" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="time_released">Time Released:</label>
+                    <input type="time" id="time_released" name="time_released">
+                </div>
+
+                <div class="form-group">
+                    <label for="time_called">Time Called:</label>
+                    <input type="time" id="time_called" name="time_called">
+                </div>
+
+                <div class="form-group">
+                    <label for="car_type">Car Type:</label>
+                    <input type="text" id="car_type" name="car_type">
+                </div>
+
+                <div class="form-group">
+                    <label for="color">Color:</label>
+                    <input type="text" id="color" name="color">
+                </div>
+
+                <div class="form-group">
+                    <label for="clamp_ref">Clamp Reference Code:</label>
+                    <input type="text" id="clamp_ref" name="clamp_ref">
+                </div>
+
+                <div class="form-group">
+                    <label for="image">Photo (optional):</label>
+                    <input type="file" id="image" name="image" accept="image/*">
+                </div>
+
+                <div class="form-group">
+                    <label for="amount_paid">Amount Paid (USD):</label>
+                    <input type="number" step="0.01" min="0" id="amount_paid" name="amount_paid" value="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="offense">Offense:</label>
+                    <textarea id="offense" name="offense" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="payment_status">Payment Status:</label>
+                    <select id="payment_status" name="payment_status" required>
+                        <option value="Processing">Processing</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Not Paid">Not Paid</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Add Entry</button>
+            </form>
+        </div>
+
+        <!-- Admin Tab -->
+        {% if is_admin %}
+        <div id="admin-tab" class="tab-content">
+            <h2>Admin</h2>
+            <div class="admin-section">
+                <h3>Add Standard User</h3>
+                <form method="POST" action="{{ url_for('add_user') }}" class="form">
+                    <div class="form-group">
+                        <label for="new_username">Username:</label>
+                        <input type="text" id="new_username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">Password:</label>
+                        <input type="password" id="new_password" name="password" required>
+                    </div>
+                    <input type="hidden" name="is_admin" value="0">
+                    <button type="submit" class="btn btn-primary">Create Standard User</button>
+                </form>
+                <p style="margin-top:10px">Standard users can view and add data but cannot edit or delete existing records.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Invoicing Tab -->
+        <div id="invoicing-tab" class="tab-content">
+            <h2>Invoicing - Paid Records</h2>
+            <a href="/invoicing" target="_blank" class="btn btn-print">Open Full Invoice</a>
+            {% set paid_records = clamps|selectattr('payment_status', 'equalto', 'Paid')|list %}
+            {% if paid_records %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Registration</th>
+                            <th>Date</th>
+                            <th>Time In</th>
+                            <th>Time Released</th>
+                            <th>Car Type</th>
+                            <th>Color</th>
+                            <th>Ref</th>
+                            <th>Offense</th>
+                            <th>Amount (USD)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for clamp in paid_records %}
+                        <tr id="paid-row-{{ clamp.id }}">
+                            <td>{{ clamp.location }}</td>
+                            <td>{{ clamp.registration or '' }}</td>
+                            <td>{{ clamp.clamp_date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ clamp.time_in.strftime('%H:%M') if clamp.time_in else '' }}</td>
+                            <td>{{ clamp.time_released.strftime('%H:%M') if clamp.time_released else 'N/A' }}</td>
+                            <td>{{ clamp.car_type or '' }}</td>
+                            <td>{{ clamp.color or '' }}</td>
+                            <td>{{ clamp.clamp_ref or '' }}</td>
+                            <td>{{ clamp.offense }}</td>
+                            <td>{{ '%.2f'|format(clamp.amount_paid or 0) }}</td>
+                            <td><span class="status-paid">Paid</span></td>
+                            <td class="actions">
+                                <button type="button" class="btn btn-sm btn-info" onclick="editPaidRow({{ clamp.id }})">Edit</button>
+                                <button type="button" class="btn btn-sm btn-print" onclick="printPaidInvoice({{ clamp.id }})">Print</button>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="presentInvoice({{ clamp.id }})">Present</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="no-data">No paid records found.</p>
+            {% endif %}
+        </div>
+
+        <!-- Appeals Tab -->
+        <div id="appeals-tab" class="tab-content">
+            <h2>Appeals</h2>
+            <div class="appeals-section">
+                <h3>Add New Appeal</h3>
+                <form method="POST" action="/add-appeal" class="form">
+                    <div class="form-group">
+                        <label for="appeal_clamp_id">Clamp ID:</label>
+                        <select id="appeal_clamp_id" name="clamp_id" required onchange="populateClampDetails()">
+                            <option value="">Select a clamp record</option>
+                            {% for clamp in clamps %}
+                            <option value="{{ clamp.id }}">ID: {{ clamp.id }} - {{ clamp.location }} ({{ clamp.clamp_date }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_location">Location:</label>
+                        <input type="text" id="appeal_location" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_registration">Registration:</label>
+                        <input type="text" id="appeal_registration" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_car_type">Car Type:</label>
+                        <input type="text" id="appeal_car_type" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_color">Color:</label>
+                        <input type="text" id="appeal_color" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_clamp_ref">Clamp Reference:</label>
+                        <input type="text" id="appeal_clamp_ref" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_amount_paid">Amount Paid (USD):</label>
+                        <input type="text" id="appeal_amount_paid" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Photo Preview:</label>
+                        <div>
+                            <img id="appeal_image_preview" src="" alt="No image" style="max-width:200px;display:none;border:1px solid #ddd;padding:4px;background:#fff">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_reason">Appeal Reason:</label>
+                        <textarea id="appeal_reason" name="appeal_reason" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="appeal_status">Appeal Status:</label>
+                        <select id="appeal_status" name="appeal_status" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Add Appeal</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox for image previews -->
+    <div id="lightbox" style="display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;">
+        <div style="max-width:95%;max-height:95%;margin:auto;position:relative;display:flex;align-items:center;justify-content:center;">
+            <img id="lightbox-img" src="" alt="Preview" style="max-width:100%;max-height:100%;display:block;margin:0 auto;border:6px solid #fff;box-shadow:0 6px 24px rgba(0,0,0,0.6)">
+            <button id="lightbox-close" style="position:absolute;top:12px;right:12px;background:#fff;border:none;padding:8px 10px;cursor:pointer;border-radius:4px;font-weight:600;">Close</button>
+        </div>
+    </div>
+
+    <!-- Delete appeals modal -->
+    <div id="delete-appeals-modal" style="display:none;position:fixed;z-index:11000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px;">
+        <div style="background:#fff;max-width:720px;width:100%;border-radius:6px;overflow:auto;max-height:80%;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,0.5);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <h3 style="margin:0">Delete Clamp and Linked Appeals</h3>
+                <button id="delete-appeals-close" style="background:#eee;border:none;padding:6px 10px;border-radius:4px;cursor:pointer">Close</button>
+            </div>
+            <div id="delete-appeals-content">
+                <p>Loading linked appeals...</p>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+                <button type="button" id="delete-appeals-confirm" class="btn btn-danger">Delete appeals and clamp</button>
+                <button type="button" id="delete-appeals-cancel" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal (hidden) -->
+    <div id="edit-modal" style="display:none;position:fixed;z-index:10000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:20px;">
+        <div style="background:#fff;max-width:900px;width:100%;border-radius:6px;overflow:auto;max-height:90%;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,0.5);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <h3 style="margin:0">Edit Clamp</h3>
+                <button id="edit-modal-close" style="background:#eee;border:none;padding:6px 10px;border-radius:4px;cursor:pointer">Close</button>
+            </div>
+            <form id="edit-modal-form">
+                <input type="hidden" id="edit-id" name="id">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div>
+                        <label>Location</label>
+                        <input type="text" id="edit-location" name="location" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Registration</label>
+                        <input type="text" id="edit-registration" name="registration" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Date</label>
+                        <input type="date" id="edit-clamp_date" name="clamp_date" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Time In</label>
+                        <input type="time" id="edit-time_in" name="time_in" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Time Called</label>
+                        <input type="time" id="edit-time_called" name="time_called" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Time Released</label>
+                        <input type="time" id="edit-time_released" name="time_released" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Car Type</label>
+                        <input type="text" id="edit-car_type" name="car_type" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Color</label>
+                        <input type="text" id="edit-color" name="color" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Clamp Ref</label>
+                        <input type="text" id="edit-clamp_ref" name="clamp_ref" style="width:100%">
+                    </div>
+                    <div>
+                        <label>Amount Paid (USD)</label>
+                        <input type="number" step="0.01" min="0" id="edit-amount_paid" name="amount_paid" style="width:100%">
+                    </div>
+                </div>
+                <div style="margin-top:12px">
+                    <label>Offense</label>
+                    <textarea id="edit-offense" name="offense" rows="4" style="width:100%"></textarea>
+                </div>
+                <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start">
+                    <div>
+                        <label>Payment Status</label>
+                        <select id="edit-payment_status" name="payment_status" style="width:100%">
+                            <option value="Processing">Processing</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Not Paid">Not Paid</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Replace Photo (optional)</label>
+                        <input type="file" id="edit-image" name="image" accept="image/*" style="width:100%">
+                        <div id="edit-image-preview-wrap" style="margin-top:8px;display:none;text-align:center">
+                            <img id="edit-image-preview" src="" alt="Preview" style="max-width:220px;max-height:160px;border:1px solid #ddd;padding:6px;background:#fff">
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+                    <button type="button" id="edit-modal-save" class="btn btn-primary">Save</button>
+                    <button type="button" id="edit-modal-cancel" class="btn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            for (const tab of tabs) tab.classList.remove('active');
+
+            const buttons = document.querySelectorAll('.tab-button');
+            for (const btn of buttons) btn.classList.remove('active');
+
+            document.getElementById(tabName).classList.add('active');
+            if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
+        }
+
+        function populateClampDetails() {
+            const clampId = document.getElementById('appeal_clamp_id').value;
+            if (!clampId) {
+                document.getElementById('appeal_location').value = '';
+                document.getElementById('appeal_registration').value = '';
+                document.getElementById('appeal_car_type').value = '';
+                document.getElementById('appeal_color').value = '';
+                document.getElementById('appeal_clamp_ref').value = '';
+                document.getElementById('appeal_amount_paid').value = '';
+                const img = document.getElementById('appeal_image_preview');
+                img.style.display = 'none';
+                img.src = '';
+                return;
+            }
+            fetch(`/api/clamp/${clampId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('appeal_location').value = data.location || '';
+                    document.getElementById('appeal_registration').value = data.registration || '';
+                    document.getElementById('appeal_car_type').value = data.car_type || '';
+                    document.getElementById('appeal_color').value = data.color || '';
+                    document.getElementById('appeal_clamp_ref').value = data.clamp_ref || '';
+                    document.getElementById('appeal_amount_paid').value = data.amount_paid != null ? (parseFloat(data.amount_paid).toFixed(2)) : '';
+                    const img = document.getElementById('appeal_image_preview');
+                    if (data.image_url) {
+                        img.src = data.image_url;
+                        img.style.display = 'block';
+                    } else {
+                        img.style.display = 'none';
+                        img.src = '';
+                    }
+                })
+                .catch(err => console.error('Error fetching clamp details:', err));
+        }
+
+        function editPaidRow(id) {
+            // Open modal and prefill fields from API
+            fetch(`/api/clamp/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Clamp not found');
+                        return;
+                    }
+                    document.getElementById('edit-id').value = data.id || id;
+                    document.getElementById('edit-location').value = data.location || '';
+                    document.getElementById('edit-registration').value = data.registration || '';
+                    if (data.clamp_date) document.getElementById('edit-clamp_date').value = data.clamp_date;
+                    document.getElementById('edit-time_in').value = data.time_in || '';
+                    document.getElementById('edit-time_called').value = data.time_called || '';
+                    document.getElementById('edit-time_released').value = data.time_released || '';
+                    document.getElementById('edit-car_type').value = data.car_type || '';
+                    document.getElementById('edit-color').value = data.color || '';
+                    document.getElementById('edit-clamp_ref').value = data.clamp_ref || '';
+                    document.getElementById('edit-amount_paid').value = data.amount_paid != null ? parseFloat(data.amount_paid).toFixed(2) : '';
+                    // ensure offense (was missing from API previously) is filled
+                    document.getElementById('edit-offense').value = data.offense || '';
+                    // payment status and image preview
+                    const ps = document.getElementById('edit-payment_status');
+                    if (ps) ps.value = data.payment_status || 'Processing';
+                    const imgPreviewWrap = document.getElementById('edit-image-preview-wrap');
+                    const imgPreview = document.getElementById('edit-image-preview');
+                    if (data.image_url) {
+                        imgPreview.src = data.image_url;
+                        imgPreviewWrap.style.display = 'block';
+                    } else {
+                        imgPreview.src = '';
+                        imgPreviewWrap.style.display = 'none';
+                    }
+
+                    const modal = document.getElementById('edit-modal');
+                    modal.style.display = 'flex';
+                    // focus first input for keyboard friendliness
+                    setTimeout(() => document.getElementById('edit-location').focus(), 100);
+                })
+                .catch(err => console.error('Error fetching clamp for edit:', err));
+        }
+
+        function printPaidInvoice(id) {
+            // Fetch full clamp details from API to build a rich print view
+            fetch(`/api/clamp/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    const w = window.open('', '', 'height=800,width=900');
+                    const style = `body{font-family:Arial,Helvetica,sans-serif;margin:40px;color:#222;background:#fff} .header{text-align:center;margin:6px 0 12px} .company{font-size:1.4rem;font-weight:800;color:#1e6fd8} .invoice-meta{color:#666;font-size:0.95rem;margin-top:6px} table{width:100%;border-collapse:collapse;margin-top:14px} td, th{padding:12px;border-bottom:1px solid #eee;vertical-align:top} .big{font-size:1.05rem} .img-wrap{margin-top:14px;text-align:center} .footer{margin-top:28px;text-align:center;color:#666;font-size:0.95rem}`;
+                    let imgHtml = '';
+                    if (data.image_url) {
+                        imgHtml = `<div class="img-wrap"><img src="${data.image_url}" alt="clamp photo" style="max-width:420px;max-height:320px;object-fit:contain;border:1px solid #ddd;padding:6px;background:#fff"></div>`;
+                    }
+                    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Invoice #${data.id}</title><style>${style}</style></head><body>`+
+                        `<div class="header"><h1>PAID INVOICE</h1><p>Invoice #${data.id} — Generated: ${new Date().toLocaleString()}</p></div>`+
+                        `<table><tr><td><strong>Location</strong></td><td class="big">${data.location || ''}</td></tr>`+
+                        `<tr><td><strong>Registration</strong></td><td class="big">${data.registration || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Date</strong></td><td>${data.clamp_date || ''}</td></tr>`+
+                        `<tr><td><strong>Time In</strong></td><td>${data.time_in || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Time Called</strong></td><td>${data.time_called || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Time Released</strong></td><td>${data.time_released || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Car Type</strong></td><td>${data.car_type || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Color</strong></td><td>${data.color || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Clamp Reference</strong></td><td>${data.clamp_ref || 'N/A'}</td></tr>`+
+                        `<tr><td><strong>Offense</strong></td><td>${data.offense || ''}</td></tr>`+
+                        `<tr><td><strong>Amount Paid</strong></td><td>${(data.amount_paid!=null?parseFloat(data.amount_paid).toFixed(2):'0.00')} USD</td></tr>`+
+                        `<tr><td><strong>Status</strong></td><td>${data.payment_status || ''}</td></tr></table>`+
+                        imgHtml+
+                        `<div style="margin-top:30px;text-align:center;color:#666;font-size:0.9rem">Official paid invoice — keep for your records</div>`+
+                        `</body></html>`;
+                    w.document.open();
+                    w.document.write(html);
+                    w.document.close();
+                    w.focus();
+                    w.print();
+                })
+                .catch(err => console.error('Error fetching clamp for print:', err));
+        }
+
+        // Lightbox behavior: delegated click handler for thumbnails
+        document.addEventListener('click', function (e) {
+            const t = e.target;
+            if (t && t.classList && t.classList.contains('thumb-img')) {
+                const src = t.getAttribute('src');
+                const lb = document.getElementById('lightbox');
+                const lbimg = document.getElementById('lightbox-img');
+                lbimg.src = src;
+                lb.style.display = 'flex';
+            }
+        });
+        document.getElementById('lightbox-close').addEventListener('click', function () {
+            const lb = document.getElementById('lightbox');
+            const lbimg = document.getElementById('lightbox-img');
+            lb.style.display = 'none';
+            lbimg.src = '';
+        });
+        document.getElementById('lightbox').addEventListener('click', function (e) {
+            if (e.target.id === 'lightbox') {
+                const lb = document.getElementById('lightbox');
+                const lbimg = document.getElementById('lightbox-img');
+                lb.style.display = 'none';
+                lbimg.src = '';
+            }
+        });
+
+        // Edit modal behavior: save/cancel/close
+        document.getElementById('edit-modal-close').addEventListener('click', function () {
+            document.getElementById('edit-modal').style.display = 'none';
+        });
+        document.getElementById('edit-modal-cancel').addEventListener('click', function () {
+            document.getElementById('edit-modal').style.display = 'none';
+        });
+
+        document.getElementById('edit-modal-save').addEventListener('click', function () {
+            const id = document.getElementById('edit-id').value;
+            const fd = new FormData();
+            // basic client-side validation
+            const loc = document.getElementById('edit-location').value || '';
+            const off = document.getElementById('edit-offense').value || '';
+            if (!loc.trim()) { alert('Location is required'); document.getElementById('edit-location').focus(); return; }
+            if (!off.trim()) { alert('Offense is required'); document.getElementById('edit-offense').focus(); return; }
+
+            fd.append('location', loc);
+            fd.append('registration', document.getElementById('edit-registration').value || '');
+            fd.append('clamp_date', document.getElementById('edit-clamp_date').value || '');
+            fd.append('time_in', document.getElementById('edit-time_in').value || '');
+            fd.append('time_called', document.getElementById('edit-time_called').value || '');
+            fd.append('time_released', document.getElementById('edit-time_released').value || '');
+            fd.append('car_type', document.getElementById('edit-car_type').value || '');
+            fd.append('color', document.getElementById('edit-color').value || '');
+            fd.append('clamp_ref', document.getElementById('edit-clamp_ref').value || '');
+            fd.append('offense', off);
+            fd.append('amount_paid', document.getElementById('edit-amount_paid').value || '0.00');
+            // use selected payment status
+            const ps = document.getElementById('edit-payment_status');
+            fd.append('payment_status', ps ? ps.value : 'Processing');
+            // include image file if provided
+            const fileInput = document.getElementById('edit-image');
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                fd.append('image', fileInput.files[0]);
+            }
+
+            fetch(`/edit-clamp/${id}`, {method: 'POST', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                .then(resp => {
+                    if (resp.ok) {
+                        // show update toast and reload so UI stays consistent
+                        document.getElementById('edit-modal').style.display = 'none';
+                        showTemporaryAlert('Record updated');
+                        setTimeout(() => location.reload(), 900);
+                    } else {
+                        resp.text().then(t => alert('Save failed: ' + t));
+                    }
+                })
+                .catch(err => {
+                    console.error('Error saving clamp:', err);
+                    alert('Error saving clamp');
+                });
+        });
+
+        // keyboard handlers: Esc to close, Enter to save (unless focus is in textarea)
+        document.addEventListener('keydown', function (e) {
+            const modal = document.getElementById('edit-modal');
+            if (!modal || modal.style.display !== 'flex') return;
+            if (e.key === 'Escape') {
+                modal.style.display = 'none';
+            } else if (e.key === 'Enter') {
+                const active = document.activeElement;
+                if (active && active.tagName && active.tagName.toLowerCase() === 'textarea') return; // let textarea handle Enter
+                e.preventDefault();
+                document.getElementById('edit-modal-save').click();
+            }
+        });
+
+        // update image preview when replacing image in modal
+        const editImageInput = document.getElementById('edit-image');
+        if (editImageInput) {
+            editImageInput.addEventListener('change', function (e) {
+                const file = this.files && this.files[0];
+                const wrap = document.getElementById('edit-image-preview-wrap');
+                const img = document.getElementById('edit-image-preview');
+                if (file) {
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    wrap.style.display = 'block';
+                } else {
+                    img.src = '';
+                    wrap.style.display = 'none';
+                }
+            });
+        }
+
+        // Update a table row (and invoicing paid row) from API JSON without reloading
+        function updateRowFromData(id, data) {
+            try {
+                const row = document.getElementById(`row-${id}`);
+                if (row) {
+                    const fields = ['location','registration','clamp_date','time_in','time_called','time_released','car_type','color','clamp_ref','offense','amount_paid','payment_status'];
+                    fields.forEach(field => {
+                        const cell = row.querySelector(`td[data-field="${field}"]`);
+                        if (!cell) return;
+                        if (field === 'payment_status') {
+                            // replace with span and class
+                            const statusText = data.payment_status || '';
+                            const cls = 'status-' + (statusText || '').toLowerCase().replace(/\s+/g,'-');
+                            cell.innerHTML = `<span class="${cls}">${statusText}</span>`;
+                        } else if (field === 'amount_paid') {
+                            const v = (data.amount_paid != null) ? parseFloat(data.amount_paid).toFixed(2) : '0.00';
+                            cell.textContent = v;
+                        } else {
+                            cell.textContent = data[field] != null ? data[field] : '';
+                        }
+                    });
+                    // thumbnail cell is the 10th cell (index 9)
+                    const tds = row.querySelectorAll('td');
+                    const photoCell = tds[9];
+                    if (photoCell) {
+                        if (data.image_url) {
+                            photoCell.innerHTML = `<img class="thumb-img" src="${data.image_url}" alt="photo" style="max-width:80px;max-height:60px;object-fit:cover;border:1px solid #ddd;padding:2px;background:#fff;cursor:pointer;">`;
+                        } else {
+                            photoCell.textContent = '-';
+                        }
+                    }
+                }
+
+                // update invoicing paid row if present
+                const paidRow = document.getElementById(`paid-row-${id}`);
+                if (paidRow) {
+                    const ptds = paidRow.querySelectorAll('td');
+                    if (ptds && ptds.length >= 11) {
+                        ptds[0].textContent = data.location || '';
+                        ptds[1].textContent = data.registration || '';
+                        ptds[2].textContent = data.clamp_date || '';
+                        ptds[3].textContent = data.time_in || '';
+                        ptds[4].textContent = data.time_released || 'N/A';
+                        ptds[5].textContent = data.car_type || '';
+                        ptds[6].textContent = data.color || '';
+                        ptds[7].textContent = data.clamp_ref || '';
+                        ptds[8].textContent = data.offense || '';
+                        ptds[9].textContent = (data.amount_paid!=null?parseFloat(data.amount_paid).toFixed(2):'0.00');
+                        // status cell
+                        ptds[10].innerHTML = `<span class="status-${(data.payment_status||'').toLowerCase().replace(/\s+/g,'-')}">${data.payment_status||''}</span>`;
+                    }
+                }
+            } catch (err) {
+                console.error('Error updating row DOM:', err);
+                // fallback: reload
+                window.location.reload();
+            }
+        }
+
+        // Delete-flow: show modal listing linked appeals, then optionally delete appeals and the clamp
+        let _pendingDeleteClampId = null;
+        function confirmDeleteClamp(id) {
+            _pendingDeleteClampId = id;
+            const modal = document.getElementById('delete-appeals-modal');
+            const content = document.getElementById('delete-appeals-content');
+            content.innerHTML = '<p>Loading linked appeals...</p>';
+            modal.style.display = 'flex';
+            fetch(`/clamp/${id}/appeals`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.appeals && data.appeals.length > 0) {
+                        let html = '<p>This clamp has the following linked appeals. Deleting the clamp will remove these appeals.</p>';
+                        html += '<ul style="max-height:260px;overflow:auto;padding-left:18px">';
+                        data.appeals.forEach(a => {
+                            html += `<li><strong>#${a.id}</strong> ${a.appeal_date||''} — ${escapeHtml(a.appeal_reason||'')} (<em>${a.appeal_status||''}</em>)</li>`;
+                        });
+                        html += '</ul>';
+                        html += '<p style="color:#b33;margin-top:8px">This action is irreversible.</p>';
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = '<p>No linked appeals found. You can safely delete this clamp.</p>';
+                    }
+                })
+                .catch(err => {
+                    content.innerHTML = '<p>Error loading appeals: ' + String(err) + '</p>';
+                });
+        }
+
+        document.getElementById('delete-appeals-close').addEventListener('click', function () { document.getElementById('delete-appeals-modal').style.display = 'none'; });
+        document.getElementById('delete-appeals-cancel').addEventListener('click', function () { document.getElementById('delete-appeals-modal').style.display = 'none'; });
+
+        document.getElementById('delete-appeals-confirm').addEventListener('click', function () {
+            const id = _pendingDeleteClampId;
+            if (!id) return;
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+            fetch(`/delete-clamp-with-appeals/${id}`, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+                .then(resp => resp.json())
+                .then(json => {
+                    if (json && json.status === 'ok') {
+                        // remove rows from DOM
+                        const row = document.getElementById(`row-${id}`);
+                        if (row) row.parentNode.removeChild(row);
+                        const paid = document.getElementById(`paid-row-${id}`);
+                        if (paid) paid.parentNode.removeChild(paid);
+                        document.getElementById('delete-appeals-modal').style.display = 'none';
+                    } else {
+                        alert('Delete failed: ' + (json.error || JSON.stringify(json)));
+                    }
+                })
+                .catch(err => alert('Delete request failed: ' + err))
+                .finally(() => { btn.disabled = false; btn.textContent = 'Delete appeals and clamp'; _pendingDeleteClampId = null; });
+        });
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"]+/g, function (s) {
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]);
+            });
+        }
+
+        function editRow(id) {
+            const row = document.getElementById(`row-${id}`);
+            const cells = row.querySelectorAll('td.editable');
+            
+            if (row.classList.contains('editing')) {
+                saveRow(id);
+            } else {
+                cells.forEach(cell => {
+                    const field = cell.dataset.field;
+                    // Prefer the .field-value content so we don't include the title text
+                    const valueEl = cell.querySelector('.field-value');
+                    const value = valueEl ? valueEl.textContent.trim() : cell.textContent.trim();
+                    let input;
+
+                    if (field === 'clamp_date') {
+                        input = document.createElement('input');
+                        input.type = 'date';
+                        input.value = value;
+                    } else if (field === 'time_in' || field === 'time_released' || field === 'time_called') {
+                        input = document.createElement('input');
+                        input.type = 'time';
+                        input.value = value !== 'N/A' ? value : '';
+                    } else if (field === 'amount_paid') {
+                        input = document.createElement('input');
+                        input.type = 'number';
+                        input.step = '0.01';
+                        input.min = '0';
+                        input.value = (value || '').replace(/[^0-9.-]/g, '') || '0.00';
+                    } else if (field === 'payment_status') {
+                        input = document.createElement('select');
+                        input.innerHTML = '<option value="Processing">Processing</option><option value="Paid">Paid</option><option value="Not Paid">Not Paid</option>';
+                        // set the select value to the existing status (strip surrounding whitespace)
+                        input.value = value || 'Processing';
+                    } else if (field === 'offense') {
+                        input = document.createElement('textarea');
+                        input.value = value;
+                    } else {
+                        input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = value;
+                    }
+                    input.className = 'edit-input';
+                    // Replace only the .field-value element so the .field-title remains
+                    if (valueEl) {
+                        valueEl.parentNode.replaceChild(input, valueEl);
+                    } else {
+                        cell.textContent = '';
+                        cell.appendChild(input);
+                    }
+                });
+                row.classList.add('editing');
+                const button = row.querySelector('.btn-edit');
+                if (button) {
+                    button.textContent = 'Save';
+                    button.classList.add('btn-save');
+                }
+            }
+        }
+
+        function saveRow(id) {
+            const row = document.getElementById(`row-${id}`);
+            const cells = row.querySelectorAll('td.editable');
+            const formData = new FormData();
+            
+            cells.forEach(cell => {
+                const input = cell.querySelector('input, textarea, select');
+                const field = cell.dataset.field;
+                if (input) {
+                    formData.append(field, input.value);
+                }
+            });
+
+            fetch(`/edit-clamp/${id}`, {
+                method: 'POST',
+                body: formData,
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            })
+            .then(response => {
+                if (response.ok) {
+                    showTemporaryAlert('Record updated');
+                    setTimeout(() => location.reload(), 900);
+                } else {
+                    response.text().then(t => alert('Save failed: ' + t));
+                }
+            })
+            .catch(error => { console.error('Error:', error); alert('Save failed'); });
+        }
+
+        function showTemporaryAlert(msg) {
+            let el = document.getElementById('temp-update-alert');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'temp-update-alert';
+                el.style.position = 'fixed';
+                el.style.top = '12px';
+                el.style.right = '12px';
+                el.style.background = '#1e6fd8';
+                el.style.color = '#fff';
+                el.style.padding = '10px 14px';
+                el.style.borderRadius = '6px';
+                el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
+                el.style.zIndex = 12000;
+                document.body.appendChild(el);
+            }
+            el.textContent = msg;
+            el.style.opacity = '1';
+            setTimeout(() => { el.style.transition = 'opacity 400ms'; el.style.opacity = '0'; }, 700);
+        }
+    </script>
+{% endblock %}
