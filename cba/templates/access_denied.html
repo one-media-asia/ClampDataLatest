@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="page-container compact">
+    <div class="page-header">
+        <h2 class="page-title">Access Denied</h2>
+    </div>
+    <div class="alert alert-error">
+        <p>{{ message }}</p>
+    </div>
+    <p>If you believe this is an error, please contact an administrator.</p>
+    <a href="{{ url_for('index') }}" class="btn">Back to Dashboard</a>
+</div>
+{% endblock %}

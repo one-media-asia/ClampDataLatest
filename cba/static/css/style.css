@@ -72,6 +72,9 @@ h3 {
     font-size: 16px;
     border-radius: 5px 5px 0 0;
     transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+    color: #333;
 }
 
 .tab-button.active {
@@ -196,7 +199,7 @@ textarea {
 .data-table th, .data-table td {
     padding: 15px;
     text-align: left;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: none; /* no row borders */
 }
 
 .data-table tbody tr {
@@ -319,7 +322,7 @@ textarea {
 .appeals-table th, .appeals-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: none; /* no row borders */
 }
 
 .appeals-table tbody tr:nth-child(even) {
@@ -383,7 +386,7 @@ textarea {
 .invoice-table th, .invoice-table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: none; /* no row borders */
 }
 
 .invoice-table tbody tr:nth-child(even) {

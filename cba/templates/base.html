@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clamping Business Administration</title>
+    <title>One Media Asia | Administration</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#c3e6cb">
@@ -27,8 +27,7 @@
             <div class="user-actions">
                 {% if session.username %}
                     <span class="who">Signed in as <strong>{{ session.username }}</strong></span>
-                    <a href="{{ url_for('change_password') }}" class="btn btn-small">Change Password</a>
-                    <a href="{{ url_for('logout') }}" class="btn btn-small">Logout</a>
+                    <a href="#" id="logout-link" class="btn btn-small" data-logout-url="{{ url_for('logout') }}" style="margin-left:8px">Logout</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="btn btn-small">Login</a>
                 {% endif %}
@@ -40,9 +39,49 @@
             {% endblock %}
         </main>
         <footer>
-            <p>&copy; {{ current_year }} Clamping Business. All rights reserved.</p>
+            &nbsp;
+            <p>&copy; {{ current_year }} Peter Greaney. All rights reserved.</p>
         </footer>
     </div>
     <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <!-- Logout confirmation modal + handler -->
+    <div id="logout-modal" style="display:none;position:fixed;z-index:12000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+        <div style="background:#fff;max-width:420px;width:90%;padding:18px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.3);text-align:left;">
+            <h3 style="margin-top:0">Confirm Logout</h3>
+            <p>Are you sure you want to log out?</p>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
+                <button id="logout-cancel" class="btn">Cancel</button>
+                <button id="logout-confirm" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            function showLogoutModal(url){
+                const modal = document.getElementById('logout-modal');
+                modal.style.display = 'flex';
+                const confirmBtn = document.getElementById('logout-confirm');
+                const cancelBtn = document.getElementById('logout-cancel');
+                function cleanup(){
+                    modal.style.display = 'none';
+                    confirmBtn.removeEventListener('click', onConfirm);
+                    cancelBtn.removeEventListener('click', onCancel);
+                }
+                function onConfirm(){ window.location.href = url; }
+                function onCancel(){ cleanup(); }
+                confirmBtn.addEventListener('click', onConfirm);
+                cancelBtn.addEventListener('click', onCancel);
+            }
+            document.addEventListener('click', function(e){
+                const t = e.target;
+                if (!t) return;
+                if (t.id === 'logout-link' || t.classList.contains('logout-link')){
+                    e.preventDefault();
+                    const url = t.getAttribute('data-logout-url') || t.getAttribute('href') || '/logout';
+                    showLogoutModal(url);
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

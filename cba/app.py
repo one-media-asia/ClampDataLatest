@@ -181,9 +181,11 @@ def admin_required(f):
         if not uid:
             return redirect(url_for('login', next=request.path))
         user = User.query.get(uid)
+        # If the user is not found or not an admin, show a friendly access denied page
         if not user or not user.is_admin:
-            flash('Admin access required', 'error')
-            return redirect(url_for('index'))
+            # Provide a helpful message and HTTP 403 status
+            message = 'Admin access required to view this page.'
+            return render_template('access_denied.html', message=message), 403
         return f(*args, **kwargs)
     return decorated
 
@@ -210,7 +212,12 @@ def require_login():
 @app.route('/')
 def index():
     clamps = ClampData.query.all()
-    return render_template('index.html', clamps=clamps)
+    # include users for admin tab rendering so admins can manage users from the dashboard
+    try:
+        users = User.query.order_by(User.created_at.desc()).all()
+    except Exception:
+        users = []
+    return render_template('index.html', clamps=clamps, users=users)
 
 
 # Compatibility routes referenced by templates
@@ -381,6 +388,7 @@ def edit_clamp(id):
     return redirect(url_for('index'))
 
 @app.route('/invoicing')
+@admin_required
 def invoicing():
     paid_clamps = ClampData.query.filter_by(payment_status='Paid').all()
     total_amount = sum((c.amount_paid or 0.0) for c in paid_clamps)
@@ -388,6 +396,7 @@ def invoicing():
 
 
 @app.route('/presentation/invoice/<int:id>')
+@admin_required
 def presentation_invoice(id):
     clamp = ClampData.query.get_or_404(id)
     return render_template('presentation_invoice.html', clamp=clamp, now=datetime.now())
@@ -398,6 +407,7 @@ def service_worker():
     return send_from_directory('static', 'service-worker.js')
 
 @app.route('/appeals')
+@admin_required
 def appeals():
     all_appeals = Appeal.query.all()
     return render_template('appeals.html', appeals=all_appeals)
@@ -405,17 +415,33 @@ def appeals():
 @app.route('/add-appeal', methods=['POST'])
 def add_appeal():
     try:
+        clamp_id = request.form.get('clamp_id')
+        if not clamp_id:
+            flash('Please select a clamp record for the appeal.', 'error')
+            return redirect(url_for('index'))
+        try:
+            clamp_id = int(clamp_id)
+        except ValueError:
+            flash('Invalid clamp id.', 'error')
+            return redirect(url_for('index'))
+
+        clamp = ClampData.query.get(clamp_id)
+        if not clamp:
+            flash('Selected clamp record not found.', 'error')
+            return redirect(url_for('index'))
+
         new_appeal = Appeal(
-            clamp_id=request.form['clamp_id'],
-            appeal_reason=request.form['appeal_reason'],
-            appeal_status=request.form['appeal_status']
+            clamp_id=clamp_id,
+            appeal_reason=request.form.get('appeal_reason', '').strip(),
+            appeal_status=request.form.get('appeal_status', 'Pending')
         )
         db.session.add(new_appeal)
         db.session.commit()
         flash('Appeal added successfully!', 'success')
     except Exception as e:
+        db.session.rollback()
         flash(f'Error: {str(e)}', 'error')
-    
+
     return redirect(url_for('appeals'))
 
 @app.route('/delete-appeal/<int:id>')
