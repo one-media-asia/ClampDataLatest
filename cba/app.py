@@ -5,8 +5,8 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from functools import wraps
-import scrypt
 import hashlib
+import scrypt
 
 # Monkey patch hashlib.scrypt to use the scrypt package since Python may not have it
 if not hasattr(hashlib, 'scrypt'):
@@ -16,7 +16,21 @@ if not hasattr(hashlib, 'scrypt'):
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clamping_business.db'
-app.config['SECRET_KEYb'] = '091043239123abc'
+
+# Load SECRET_KEY from environment. If not set, generate a secure runtime
+# fallback and warn the operator. The runtime fallback is suitable for
+# development and quick local testing but MUST be replaced in production
+# by setting the `SECRET_KEY` environment variable to a persistent secret.
+import secrets
+env_secret = os.environ.get('SECRET_KEY')
+if env_secret:
+    app.config['SECRET_KEY'] = env_secret
+else:
+    # generate a cryptographically secure fallback (rotates on restart)
+    fallback_secret = secrets.token_urlsafe(48)
+    app.config['SECRET_KEY'] = fallback_secret
+    print("WARNING: No SECRET_KEY set in environment. Using a runtime-generated fallback secret.")
+    print("Set the environment variable SECRET_KEY to a persistent secret to enable stable sessions and to rotate the key safely.")
 
 db = SQLAlchemy(app)
 
