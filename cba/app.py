@@ -213,22 +213,22 @@ def admin_required(f):
 
 
 # Enforce login for all routes except a small whitelist (login, static files, service worker)
-@app.before_request
-def require_login():
-    # endpoints that may be accessed without authentication
-    whitelist = {'login', 'static', 'service_worker'}
-    # If endpoint is None (can happen) allow to proceed (Flask will handle 404)
-    ep = request.endpoint
-    if not ep:
-        return
-    # allow whitelisted endpoints
-    if ep.split('.')[-1] in whitelist:
-        return
-    # allow if user is logged in
-    if session.get('user_id'):
-        return
-    # otherwise redirect to login
-    return redirect(url_for('login', next=request.path))
+# @app.before_request
+# def require_login():
+#     # endpoints that may be accessed without authentication
+#     whitelist = {'login', 'static', 'service_worker'}
+#     # If endpoint is None (can happen) allow to proceed (Flask will handle 404)
+#     ep = request.endpoint
+#     if not ep:
+#         return
+#     # allow whitelisted endpoints
+#     if ep.split('.')[-1] in whitelist:
+#         return
+#     # allow if user is logged in
+#     if session.get('user_id'):
+#         return
+#     # otherwise redirect to login
+#     return redirect(url_for('login', next=request.path))
 
 # Routes
 @app.route('/')
